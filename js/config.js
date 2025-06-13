@@ -2,7 +2,7 @@
 
 // 1. COLE AQUI O OBJETO DE CONFIGURAÇÃO DO SEU PROJETO FIREBASE
 export const firebaseConfig = {
-  apiKey: "AIzaSyBz-Ujdq2gLUO1xLsmBeQ778LPnE5vDbnk",
+  apiKey: "",
   authDomain: "rastreando-gastos.firebaseapp.com",
   projectId: "rastreando-gastos",
   storageBucket: "rastreando-gastos.firebasestorage.app",
