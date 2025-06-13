@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Controle de Gastos</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .hidden { display: none; }
+        .tab-active {
+            border-bottom: 2px solid #4f46e5;
+            color: #4f46e5;
+            font-weight: 600;
+        }
+        .filter-btn-active {
+            background-color: #4f46e5 !important;
+            color: white !important;
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+
+    <!-- Tela de Carregamento -->
+    <div id="loading-spinner" class="fixed inset-0 bg-white/70 backdrop-blur-sm flex items-center justify-center z-50">
+        <div class="animate-spin rounded-full h-24 w-24 border-t-4 border-b-4 border-blue-600"></div>
+    </div>
+
+    <!-- Tela de Autenticação -->
+    <div id="auth-screen" class="hidden">
+        <div class="flex items-center justify-center min-h-screen">
+            <div class="w-full max-w-md bg-white p-8 rounded-xl shadow-lg m-4">
+                <h2 id="auth-title" class="text-3xl font-bold text-center text-gray-800 mb-6">Login</h2>
+                <form id="auth-form">
+                    <div class="mb-4">
+                        <label class="block text-gray-700 text-sm font-bold mb-2" for="email">Email</label>
+                        <input type="email" id="email" class="shadow appearance-none border rounded w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="seu@email.com" required>
+                    </div>
+                    <div class="mb-6">
+                        <label class="block text-gray-700 text-sm font-bold mb-2" for="password">Senha</label>
+                        <input type="password" id="password" class="shadow appearance-none border rounded w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="********" required>
+                    </div>
+                    <div id="auth-error" class="text-red-500 text-xs italic mb-4 hidden"></div>
+                    <div class="flex flex-col gap-4">
+                        <button type="submit" id="auth-button" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-4 rounded-lg transition duration-300 w-full">Entrar</button>
+                        <button type="button" id="toggle-auth-mode" class="text-center text-sm text-blue-500 hover:underline">Não tem uma conta? Cadastre-se</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Painel Logado -->
+    <div id="logged-in-screen" class="hidden">
+        <div class="container mx-auto p-4 max-w-7xl">
+             <header class="flex justify-between items-center mb-6 bg-white p-4 rounded-lg shadow-md flex-wrap">
+                <div>
+                    <h1 class="text-2xl font-bold text-gray-800">Meu Controle de Gastos</h1>
+                    <p id="user-email" class="text-gray-600 text-sm break-all"></p>
+                </div>
+                <button id="logout-button" class="mt-4 sm:mt-0 bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-lg transition duration-300">Sair</button>
+            </header>
+            
+            <div class="mb-6 border-b border-gray-200">
+                <nav class="flex space-x-4" aria-label="Tabs">
+                    <button id="tab-dashboard" class="px-3 py-2 text-sm text-gray-500 hover:text-gray-700 tab-active">Painel Principal</button>
+                    <button id="tab-reports" class="px-3 py-2 text-sm text-gray-500 hover:text-gray-700">Relatórios</button>
+                </nav>
+            </div>
+
+            <main id="dashboard-content">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="bg-white p-6 rounded-lg shadow-md">
+                        <h2 class="text-xl font-semibold mb-4 text-gray-700">Adicionar Novo Gasto</h2>
+                        <form id="expense-form" class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Data</label>
+                                <input type="date" id="expense-date" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Valor (R$)</label>
+                                <input type="text" id="expense-amount" inputmode="decimal" placeholder="0,00" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 text-right">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Descrição</label>
+                                <input type="text" id="expense-description" placeholder="Ex: Almoço com amigos" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Categoria</label>
+                                <select id="expense-category" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2">
+                                    <option value="">Selecione uma categoria</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Subcategoria</label>
+                                <select id="expense-subcategory" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2">
+                                    <option value="">Selecione uma subcategoria</option>
+                                </select>
+                            </div>
+                            <div id="expense-error" class="text-red-500 text-sm font-semibold hidden"></div>
+                            <button type="submit" id="add-expense-button" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300 disabled:bg-indigo-400">Adicionar Gasto</button>
+                        </form>
+                    </div>
+                    <div class="bg-white p-6 rounded-lg shadow-md">
+                        <h2 class="text-xl font-semibold mb-4 text-gray-700">Meus Últimos Gastos</h2>
+                        <ul id="expense-list" class="space-y-3 h-96 overflow-y-auto pr-2">
+                        </ul>
+                        <p id="no-expenses-message" class="text-gray-500 hidden">Nenhum gasto registrado ainda.</p>
+                    </div>
+                </div>
+            </main>
+
+            <section id="reports-content" class="hidden">
+                <div class="bg-white p-4 rounded-lg shadow-md mb-6">
+                    <h3 class="font-semibold text-lg mb-3">Analisar Período</h3>
+                    <div class="flex flex-wrap items-center gap-4">
+                        <div class="flex flex-wrap gap-2">
+                            <button data-period="15" class="period-filter-btn px-3 py-1.5 text-sm bg-gray-200 rounded-md hover:bg-gray-300">Últimos 15 dias</button>
+                            <button data-period="30" class="period-filter-btn px-3 py-1.5 text-sm bg-gray-200 rounded-md hover:bg-gray-300">Últimos 30 dias</button>
+                            <button data-period="current_month" class="period-filter-btn px-3 py-1.5 text-sm bg-gray-200 rounded-md hover:bg-gray-300">Mês Atual</button>
+                            <button data-period="previous_month" class="period-filter-btn px-3 py-1.5 text-sm bg-gray-200 rounded-md hover:bg-gray-300">Mês Anterior</button>
+                            <button data-period="year" class="period-filter-btn px-3 py-1.5 text-sm bg-gray-200 rounded-md hover:bg-gray-300">Este Ano</button>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <div class="relative">
+                                <input type="text" id="start-date-display" readonly placeholder="DD/MM/AAAA" class="border-gray-300 rounded-md shadow-sm p-1.5 text-sm w-32 cursor-pointer bg-white text-center">
+                                <input type="date" id="start-date" class="absolute top-0 left-0 w-full h-full opacity-0 cursor-pointer">
+                            </div>
+                            <span class="text-gray-500">até</span>
+                            <div class="relative">
+                                <input type="text" id="end-date-display" readonly placeholder="DD/MM/AAAA" class="border-gray-300 rounded-md shadow-sm p-1.5 text-sm w-32 cursor-pointer bg-white text-center">
+                                <input type="date" id="end-date" class="absolute top-0 left-0 w-full h-full opacity-0 cursor-pointer">
+                            </div>
+                            <button id="custom-date-btn" class="px-3 py-1.5 text-sm bg-indigo-600 text-white rounded-md hover:bg-indigo-700">Aplicar</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                    <div class="bg-white p-6 rounded-lg shadow-md">
+                        <h3 class="font-semibold text-lg mb-3">Gastos por Categoria</h3>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-sm text-left text-gray-500">
+                                <thead class="text-xs text-gray-700 uppercase bg-gray-50">
+                                    <tr>
+                                        <th scope="col" class="px-4 py-3 cursor-pointer" data-sort-summary="category">Categoria &#x2195;</th>
+                                        <th scope="col" class="px-4 py-3 text-center cursor-pointer" data-sort-summary="count">Qtde. &#x2195;</th>
+                                        <th scope="col" class="px-4 py-3 text-right cursor-pointer" data-sort-summary="total">Total &#x2195;</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="category-summary-tbody"></tbody>
+                            </table>
+                        </div>
+                         <p id="no-reports-data" class="text-gray-500 mt-4">Nenhum gasto no período selecionado.</p>
+                    </div>
+                    <div class="bg-white p-6 rounded-lg shadow-md flex items-center justify-center min-h-[300px]">
+                        <canvas id="category-chart" class="hidden"></canvas>
+                    </div>
+                </div>
+                <div id="subcategory-analysis" class="hidden bg-white p-6 rounded-lg shadow-md">
+                    <h3 id="subcategory-title" class="font-semibold text-lg mb-3"></h3>
+                    <div class="overflow-x-auto mb-4">
+                        <table class="w-full text-sm text-left text-gray-500">
+                            <thead class="text-xs text-gray-700 uppercase bg-gray-50">
+                                <tr>
+                                    <th scope="col" class="px-4 py-3 cursor-pointer" data-sort-subcategory="subcategory">Subcategoria &#x2195;</th>
+                                    <th scope="col" class="px-4 py-3 text-center cursor-pointer" data-sort-subcategory="count">Qtde. &#x2195;</th>
+                                    <th scope="col" class="px-4 py-3 text-right cursor-pointer" data-sort-subcategory="total">Total &#x2195;</th>
+                                </tr>
+                            </thead>
+                            <tbody id="subcategory-summary-tbody"></tbody>
+                        </table>
+                    </div>
+                    <div id="detailed-expense-list-container" class="hidden">
+                        <h4 id="detailed-list-title" class="font-semibold mb-2"></h4>
+                        <table class="w-full text-sm text-left text-gray-500">
+                            <thead class="text-xs text-gray-700 uppercase bg-gray-50">
+                                <tr>
+                                    <th scope="col" class="px-6 py-3 cursor-pointer" data-sort-detailed="date">Data &#x2195;</th>
+                                    <th scope="col" class="px-6 py-3">Descrição</th>
+                                    <th scope="col" class="px-6 py-3 cursor-pointer" data-sort-detailed="amount">Valor &#x2195;</th>
+                                </tr>
+                            </thead>
+                            <tbody id="detailed-expense-tbody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </div>
+    
+    <script type="module" src="./js/app.js"></script>
+
+</body>
+</html>
